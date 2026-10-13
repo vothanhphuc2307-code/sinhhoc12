@@ -1,6 +1,6 @@
 {
   "name": "sinh12-kntt-diagnostic-practice",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "He thong on tap Sinh hoc 12 KNTT, Chuong I, Bai 1-5; 24 de bien the, cham backend va phan tich lo hong.",
   "main": "server.js",

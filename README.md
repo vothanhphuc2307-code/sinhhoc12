@@ -1,77 +1,58 @@
-# Hệ thống ôn tập Sinh học 12 — Chương I, Bài 1–5
+# Hệ thống ôn tập Sinh học 12 KNTT — Chương I, Bài 1–5
 
-Một website luyện kiểm tra 15 phút cho Sinh học 12 (Kết nối tri thức), có frontend responsive, API backend chấm bài, giải thích từng câu và phân tích nhóm kiến thức cần ôn lại.
+Website luyện kiểm tra 15 phút gồm frontend responsive và backend API Node.js, có chấm bài, giải thích từng câu, phát hiện kỹ năng yếu và tạo đề ôn vá lỗi. Phù hợp để triển khai bằng GitHub + Vercel.
 
-## Có gì trong bản này?
+## Nội dung và mức độ kiểm chứng
 
-- **24 đề luyện tập biến thể**, mỗi đề 10 câu / 15 phút; phân bố 2 câu cho từng bài.
-- **Ngân hàng 100 câu tự biên soạn**, chia đều 20 câu cho Bài 1–5. Các đề có thể dùng lại một số câu ở những tổ hợp khác nhau, không phải 240 câu hoàn toàn khác nhau.
-- **Backend chấm bài** qua `/api/submit`. Frontend không nhận đáp án đúng trước khi nộp; khóa đáp án được đặt trong các module nội bộ của thư mục `api/`.
-- **Giải thích theo từng câu**: đáp án đúng, lựa chọn của người làm và lý do.
-- **Chẩn đoán lỗ hổng** theo kỹ năng như cấu trúc DNA, tái bản, phiên mã/dịch mã, operon lac, các dạng đột biến, DNA tái tổ hợp, vector/enzym và PCR.
-- **Phân tích lũy kế** những nhóm kỹ năng thường sai qua các lần làm đề trên cùng trình duyệt.
-- Giao diện có animation nhẹ, bảng chọn câu, đồng hồ 15 phút, tự nộp khi hết giờ, responsive cho máy tính và điện thoại.
-- Không cần thư viện bên ngoài hoặc bước build để chạy bản cơ bản.
+- 100 câu tự biên soạn/diễn đạt lại, 20 câu cho mỗi bài; câu hỏi có đáp án và giải thích do hệ thống dùng để chấm.
+- 24 đề biến thể, mỗi đề 10 câu, 15 phút, bố trí 2 câu từ mỗi Bài 1–5. Một số câu được dùng lại ở các tổ hợp đề khác nhau; đây không phải 240 câu hoàn toàn riêng biệt.
+- Đối chiếu phạm vi và khái niệm với trang bài học Sinh học 12 Kết nối tri thức của SGKVN, ngân hàng trắc nghiệm có đáp án của VietJack, và các trang lời giải Bài 3–5 tại Bài Kiểm Tra. Nguồn và link cụ thể được liệt kê trong giao diện và `CONTENT_AUDIT.md`.
+- Câu hỏi được diễn đạt lại, không bê nguyên văn các bộ đề. Các link ngoài là nguồn đối chiếu; không đồng nghĩa mỗi câu là câu trích dẫn từ nguồn đó.
+- Bài 5 đã ưu tiên đúng nội dung công nghệ DNA tái tổ hợp, vector/chuyển gene, sinh vật biến đổi gene, thành tựu và rủi ro/đạo đức sinh học. Không lấy PCR/điện di làm trọng tâm riêng của Bài 5.
+- Đáp án được kiểm tra bằng lập luận sinh học và đối chiếu tài liệu tham khảo trong phạm vi có thể; không tuyên bố đảm bảo tuyệt đối 100% hoặc trùng đề giáo viên. Khi vở ghi/SGK của lớp có quy ước cụ thể hơn, ưu tiên tài liệu giáo viên.
 
-## Chạy thử trên máy tính
+## Tính năng
 
-Yêu cầu Node.js 18 trở lên.
+- `GET /api/test?set=1` trả 10 câu không kèm đáp án/giải thích.
+- `POST /api/submit` chấm trên backend, trả đáp án đúng, giải thích, link nguồn và phân tích sai theo kỹ năng/bài học.
+- `POST /api/adaptive` tạo đề vá lỗ hổng, ưu tiên kỹ năng đã sai nhưng vẫn bao phủ cả 5 bài; câu trả lời sai của lượt trước được loại khỏi pool nếu vẫn còn đủ câu thay thế. Khi nộp đề cá nhân hóa, backend tái tạo cùng đề theo seed để chấm đúng bộ câu đã phát.
+- `GET /api/sources` cung cấp mục lục nguồn đối chiếu.
+- `GET /api/health` kiểm tra trạng thái ngân hàng/API.
+- 24 đề thường, 10 câu/15 phút, đồng hồ tự nộp ở frontend, thanh tiến độ, đáp án/giải thích sau khi nộp.
+- Lịch sử và phân tích lũy kế lưu trong trình duyệt hiện tại; lịch sử cloud tùy chọn chỉ lưu đề thường, không lưu đề cá nhân hóa trong cấu hình hiện tại.
+- `lib/` chứa module nội bộ; `vercel.json` chặn truy cập tĩnh trực tiếp tới `/lib/*`, `/scripts/*`, `/supabase/*` và tài liệu/config riêng. Chỉ các handler thật ở `api/` mới là serverless endpoints trên Vercel. Đáp án không được xuất trong payload nhận đề thường.
+
+## Chạy cục bộ
+
+Cần Node.js 18 trở lên, không cần cài package bên ngoài.
 
 ```bash
 npm start
 ```
 
-Sau đó mở `http://localhost:3000`.
+Mở `http://localhost:3000`. API kiểm tra: `/api/health`, `/api/test?set=1`, `/api/sources`.
 
-Kiểm tra các API:
-
-- `GET /api/test?set=1` — trả câu hỏi của đề nhưng không trả đáp án/giải thích.
-- `POST /api/submit` — chấm câu trả lời và trả kết quả, giải thích cùng chẩn đoán.
-- `GET /api/history?studentId=...` — đọc lịch sử cloud nếu đã cấu hình Supabase.
-
-Chạy kiểm tra nhanh bộ câu hỏi và logic chấm:
+Chạy kiểm tra tự động:
 
 ```bash
 npm test
 ```
 
-## Đưa lên GitHub rồi triển khai bằng Vercel
+## Đưa lên GitHub/Vercel
 
-1. Giải nén ZIP.
-2. Tạo repository GitHub mới và upload **toàn bộ tệp/thư mục bên trong** (không upload nguyên ZIP làm một tệp duy nhất).
-3. Mở Vercel, chọn **Add New → Project**, import repository vừa tạo.
-4. Chọn Framework Preset **Other** nếu Vercel yêu cầu. Không cần build command hoặc output directory.
-5. Deploy. Vercel tự nhận diện các function `.js` trong thư mục `api/`; `index.html`, `styles.css`, `app.js` là frontend.
+1. Giải nén ZIP và tạo repository GitHub.
+2. Upload nội dung **bên trong** thư mục gốc, gồm `index.html`, `app.js`, `styles.css`, `api/`, `lib/`, `vercel.json`, `package.json`. Đừng upload nguyên ZIP như một file đơn lẻ.
+3. Vào Vercel → Add New → Project → import repository. Chọn Framework Preset `Other` nếu cần; không cần build command.
+4. Deploy; Vercel tự nhận diện các hàm trong thư mục `api/`.
 
-Nếu sửa mã sau đó, commit và push lên GitHub; Vercel sẽ tạo deployment mới khi repository đã được kết nối.
+## Đồng bộ lịch sử qua thiết bị (tùy chọn)
 
-## Lưu điểm và đồng bộ giữa thiết bị (tùy chọn)
+Mặc định, điểm và lịch sử phân tích được lưu trong `localStorage` của trình duyệt này. Nếu muốn lịch sử cloud cho các đề thường, chạy `supabase/schema.sql` trong Supabase SQL Editor rồi cấu hình `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` trong Vercel Environment Variables. Không bao giờ đặt service-role key trong `app.js`, HTML hoặc repository công khai. Mã studentId là mã ngẫu nhiên cục bộ, không phải tài khoản xác thực.
 
-Mặc định, backend vẫn chấm và phân tích bài đầy đủ; lịch sử nhiều lần làm được lưu trong `localStorage` của trình duyệt hiện tại. Để đồng bộ lịch sử qua những thiết bị khác nhau, có thể cấu hình Supabase:
+## Nguồn tham khảo đối chiếu
 
-1. Tạo project Supabase.
-2. Mở SQL Editor, chạy nội dung `supabase/schema.sql` để tạo bảng `quiz_attempts`.
-3. Trong Vercel → Project → Settings → Environment Variables, thêm:
-   - `SUPABASE_URL` — URL của project Supabase.
-   - `SUPABASE_SERVICE_ROLE_KEY` — service-role key chỉ dùng phía server.
-4. Redeploy project trên Vercel.
+- SGKVN — Sinh học 12 Kết nối tri thức: https://www.sgkvn.com/lop-12-15/ket-noi-tri-thuc-voi-cuoc-song-3/sinh-hoc-12-3357.html
+- VietJack — Ngân hàng trắc nghiệm Chương I: https://vietjack.com/sinh-hoc-12-kn/trac-nghiem-chuong-1-di-truyen-phan-tu.jsp
+- Các trang SGKVN, VietJack và tài liệu có đáp án theo từng Bài 1–5 được ghi cụ thể trong `lib/bank.js` và hiển thị trực tiếp trong website sau khi nộp bài.
 
-**Không** đặt `SUPABASE_SERVICE_ROLE_KEY` trong frontend, không thêm khóa đó vào `app.js`, và không commit giá trị thật lên GitHub. Có thể xem mẫu tên biến trong `.env.example`. Nếu chưa cấu hình Supabase, website vẫn chấm bài bình thường và thông báo lịch sử đang lưu trên trình duyệt này.
-
-Lịch sử cloud dùng một mã ngẫu nhiên được tạo trên trình duyệt; không cần nhập tên, email hay thông tin cá nhân. Đây là mã định danh cục bộ, không phải tài khoản xác thực nên không nên dùng như hệ thống thi có giám sát hoặc cần chống gian lận.
-
-## Phạm vi và lưu ý học tập
-
-Tên bài trong phạm vi sách Kết nối tri thức:
-
-1. DNA và cơ chế tái bản DNA.
-2. Gene, quá trình truyền đạt thông tin di truyền và hệ gene.
-3. Điều hòa biểu hiện gene.
-4. Đột biến gene.
-5. Công nghệ di truyền.
-
-Bộ câu hỏi là tài liệu ôn tập tự biên soạn theo các kiến thức trọng tâm; không phải đề chính thức và không bảo đảm trùng với đề giáo viên. Một số câu liên hệ PCR/ứng dụng công nghệ gene nhằm luyện cách hiểu công cụ và quy trình; nên ưu tiên ghi chú giáo viên và nội dung SGK khi có khác biệt về mức độ chi tiết.
-
-Tài liệu tham khảo đối chiếu phạm vi bài học:
-- SGKVN, mục lục Sinh học 12 Kết nối tri thức: https://www.sgkvn.com/lop-12-15/ket-noi-tri-thuc-voi-cuoc-song-3/sinh-hoc-12-3357.html
-- VietJack, Chương I — Di truyền phân tử: https://vietjack.com/sinh-hoc-12-kn/
+Đây là công cụ ôn tập do AI hỗ trợ biên soạn, không phải đề chính thức của trường/giáo viên. Không dùng kết quả tự động thay thế việc xác minh các phần giáo viên yêu cầu.

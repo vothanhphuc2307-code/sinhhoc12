@@ -58,7 +58,7 @@
     const name = test.title || `Đề luyện tập ${String(test.id).padStart(2,'0')}`;
     $('selectedTestName').textContent = name;
     $('examTitle').textContent = name;
-    $('examSub').textContent = `${test.totalQuestions} câu hỏi · Chương I · Bài 1–5`;
+    $('examSub').textContent = `${test.totalQuestions} câu hỏi · ${test.mode === 'adaptive' ? 'ưu tiên kỹ năng đã sai' : 'Chương I · Bài 1–5'}`;
   }
   async function loadTest(id, opts = {}) {
     if (state.started && !state.submitted && Object.values(state.answers).some(v => v !== null && v !== undefined)) {
@@ -78,7 +78,7 @@
       state.remaining = test.durationSeconds || 900;
       state.currentQuestion = 0;
       updateTestLabels(test);
-      $('testSelect').value = String(test.id);
+      if (test.mode !== 'adaptive') $('testSelect').value = String(test.id);
       $('prestart').classList.remove('hidden');
       $('questionArea').classList.add('hidden');
       $('resultArea').classList.add('hidden');
@@ -114,7 +114,7 @@
         <section class="question-card" id="question-${index}" data-question-index="${index}">
           <div class="question-head">
             <div class="question-num">${String(index+1).padStart(2,'0')}</div>
-            <div><div class="question-meta">${escapeHtml(question.lessonTitle)} · ${escapeHtml(question.level || 'Ôn tập')}</div><div class="question-text">${escapeHtml(question.prompt)}</div></div>
+            <div><div class="question-meta">${escapeHtml(question.lessonTitle)} · ${escapeHtml(question.skill || 'Ôn tập')} · ${escapeHtml(question.level || 'Ôn tập')}</div><div class="question-text">${escapeHtml(question.prompt)}</div></div>
           </div>
           <div class="choice-list">
             ${question.choices.map((choice,j)=>`
@@ -189,7 +189,7 @@
     try {
       const result = await requestJSON('/api/submit', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({testId:state.test.id, answers:state.answers, studentId})
+        body:JSON.stringify({testId:state.test.id, mode:state.test.mode || 'standard', adaptiveSkills:state.test.adaptiveSkills || [], excludedIds:state.test.excludedIds || [], seed:state.test.seed, answers:state.answers, studentId})
       });
       state.result = result;
       state.submitted = true;
@@ -208,7 +208,7 @@
       renderAnswerGridAfterSubmit(result);
       const attempt = {
         localId: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-        testId:result.testId, title:result.title, score:result.score,
+        testId:result.testId, mode:result.mode || 'standard', title:result.title, score:result.score,
         correctCount:result.correctCount, total:result.total,
         wrongCount:result.wrongCount, skippedCount:result.skippedCount,
         dateISO:new Date().toISOString(), cloudSaved:result.cloudSaved,
@@ -239,7 +239,7 @@
         </div>
       </div>
       <div class="result-subsection"><div class="result-subhead"><h4>Chẩn đoán từ bài vừa làm</h4><span>Backend đã đối chiếu từng câu</span></div>
-        ${result.weakSpots.length ? `<div class="diagnosis-list">${result.weakSpots.map(item=>`<article class="diagnosis-card"><div class="diagnosis-card-top"><strong>${escapeHtml(item.skill)}</strong><span class="miss-badge">${item.missed} câu cần ôn${item.skipped ? ` · ${item.skipped} bỏ trống` : ``}</span></div><p><b>${escapeHtml(item.lessonTitle)}</b><br>${escapeHtml(item.repair)}</p></article>`).join('')}</div>` : '<div class="diagnosis-empty"><strong>Chưa phát hiện lỗi trong đề này.</strong><br>Đọc nhanh phần giải thích để củng cố lý do chọn đáp án, rồi thử đề biến thể tiếp theo.</div>'}
+        ${result.weakSpots.length ? `<div class="diagnosis-list">${result.weakSpots.map(item=>`<article class="diagnosis-card"><div class="diagnosis-card-top"><strong>${escapeHtml(item.skill)}</strong><span class="miss-badge">${item.missed} câu cần ôn${item.skipped ? ` · ${item.skipped} bỏ trống` : ``}</span></div><p><b>${escapeHtml(item.lessonTitle)}</b><br>${escapeHtml(item.repair)}</p></article>`).join('')}</div><button class="btn btn-dark adaptive-cta" type="button" data-adaptive-start>✳ Tạo đề riêng để vá lỗi sai <span>→</span></button>` : '<div class="diagnosis-empty"><strong>Chưa phát hiện lỗi trong đề này.</strong><br>Đọc nhanh phần giải thích để củng cố lý do chọn đáp án, rồi thử đề biến thể tiếp theo.</div>'}
       </div>
       <div class="result-subsection"><div class="result-subhead"><h4>Đề nên làm tiếp</h4><span>Ưu tiên nội dung bạn vừa sai</span></div><div class="recommended-row">${result.recommendedTests.map(id=>`<button type="button" class="recommended-test" data-recommended-test="${id}">Đề ${String(id).padStart(2,'0')} <span>→</span></button>`).join('')}</div></div>
       <div class="result-subsection"><div class="result-subhead"><h4>Độ chắc theo từng bài</h4><span>Chỉ tính đề hiện tại</span></div><div class="diagnosis-list">${result.lessonStats.map(row=>`<article class="diagnosis-card"><div class="diagnosis-card-top"><strong>${escapeHtml(row.lessonTitle)}</strong><span class="miss-badge" style="${row.accuracy>=80?'background:#e6f7ec;color:#1a8156':row.accuracy>=50?'background:#fff6df;color:#a57b2a':''}">${row.accuracy}% đúng</span></div><div class="gap-track"><div class="gap-fill" style="width:${row.accuracy}%;background:${row.accuracy>=80?'linear-gradient(90deg,#64bd8d,#a6dfba)':row.accuracy>=50?'linear-gradient(90deg,#d7bd72,#f0d994)':'linear-gradient(90deg,#de9a70,#eac1a2)'}"></div></div><p>${row.correct}/${row.total} câu đúng ở bài này.</p></article>`).join('')}</div></div>
@@ -253,6 +253,7 @@
           ${item.choices.map((choice,i)=>`<div class="review-choice ${i===item.correct?'correct-option':''} ${i===item.selected && !item.isCorrect?'selected-wrong':''}"><b>${letters[i]}.</b><span>${escapeHtml(choice)}</span><span class="review-choice-mark">${i===item.correct?'✓':i===item.selected?'←':''}</span></div>`).join('')}
           <div class="explain-box"><strong>Vì sao đáp án đúng?</strong><p>${escapeHtml(item.explanation)}</p></div>
           ${!item.isCorrect?`<div class="repair-box"><strong>VÁ LỖ HỔNG · ${escapeHtml(item.skill)}:</strong> ${escapeHtml(item.repair)}</div>`:''}
+          ${(item.sources && item.sources.length) ? `<div class="source-inline"><strong>Nguồn đối chiếu:</strong> ${item.sources.map(source=>`<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)}</a>`).join(' <span aria-hidden="true">·</span> ')}</div>` : ''}
         </div>
       </article>`).join('');
   }
@@ -290,6 +291,7 @@
     }
     return output.sort((a,b)=>new Date(b.dateISO||0)-new Date(a.dateISO||0));
   }
+  function attemptLabel(item) { return item.mode === 'adaptive' ? 'Vá lỗi' : `Đề ${String(item.testId ?? item.test_id ?? 0).padStart(2,'0')}`; }
   function formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'Gần đây';
@@ -303,7 +305,7 @@
     }
     const recent=all.slice(0,7).reverse();
     const average=all.reduce((sum,item)=>sum+(Number(item.score)||0),0)/all.length;
-    box.innerHTML=`<div class="history-topline"><div><strong>${average.toFixed(1)}<small style="font-size:11px;color:#8da195">/10</small></strong><div style="font-size:9px;color:#80958a">Điểm trung bình</div></div><span>${all.length} lượt đã hoàn thành</span></div><div class="sparkline">${recent.map((item,index)=>{const height=Math.max(8,Math.min(100,(Number(item.score)||0)*10));return `<div class="sparkbar-wrap" title="Đề ${item.testId}: ${Number(item.score).toFixed(1)}/10 · ${formatDate(item.dateISO)}"><div class="sparkbar" style="height:${height}%;animation-delay:${index*45}ms"></div></div>`}).join('')}</div><div class="history-caption"><span>${formatDate(recent[0].dateISO)}</span><span>${formatDate(recent[recent.length-1].dateISO)}</span></div><div style="margin-top:14px;display:grid;gap:8px">${all.slice(0,3).map(item=>`<div style="display:flex;align-items:center;gap:10px;font-size:10px"><span style="min-width:46px;color:#6e8b7b;font-weight:800">Đề ${String(item.testId).padStart(2,'0')}</span><div style="height:5px;background:#edf4ef;border-radius:99px;flex:1;overflow:hidden"><div style="height:100%;width:${Math.max(0,Math.min(100,Number(item.score)*10))}%;background:${item.score>=8?'#65bc8f':item.score>=5?'#d8bb71':'#de9b75'};border-radius:99px"></div></div><strong style="min-width:34px;text-align:right;color:#426f58">${Number(item.score).toFixed(1)}</strong><span style="color:#9aa99f;min-width:34px;text-align:right">${formatDate(item.dateISO)}</span></div>`).join('')}</div>`;
+    box.innerHTML=`<div class="history-topline"><div><strong>${average.toFixed(1)}<small style="font-size:11px;color:#8da195">/10</small></strong><div style="font-size:9px;color:#80958a">Điểm trung bình</div></div><span>${all.length} lượt đã hoàn thành</span></div><div class="sparkline">${recent.map((item,index)=>{const height=Math.max(8,Math.min(100,(Number(item.score)||0)*10));return `<div class="sparkbar-wrap" title="${escapeHtml(attemptLabel(item))}: ${Number(item.score).toFixed(1)}/10 · ${formatDate(item.dateISO)}"><div class="sparkbar" style="height:${height}%;animation-delay:${index*45}ms"></div></div>`}).join('')}</div><div class="history-caption"><span>${formatDate(recent[0].dateISO)}</span><span>${formatDate(recent[recent.length-1].dateISO)}</span></div><div style="margin-top:14px;display:grid;gap:8px">${all.slice(0,3).map(item=>`<div style="display:flex;align-items:center;gap:10px;font-size:10px"><span style="min-width:46px;color:#6e8b7b;font-weight:800">${escapeHtml(attemptLabel(item))}</span><div style="height:5px;background:#edf4ef;border-radius:99px;flex:1;overflow:hidden"><div style="height:100%;width:${Math.max(0,Math.min(100,Number(item.score)*10))}%;background:${item.score>=8?'#65bc8f':item.score>=5?'#d8bb71':'#de9b75'};border-radius:99px"></div></div><strong style="min-width:34px;text-align:right;color:#426f58">${Number(item.score).toFixed(1)}</strong><span style="color:#9aa99f;min-width:34px;text-align:right">${formatDate(item.dateISO)}</span></div>`).join('')}</div>`;
   }
   function renderCumulativeGaps(all) {
     const box = $('cumulativeGaps');
@@ -349,10 +351,39 @@
     loadTest(next,{scroll:true});
   });
   $('resultArea').addEventListener('click',event=>{
+    const adaptiveButton=event.target.closest('[data-adaptive-start]');
+    if (adaptiveButton) { createAdaptiveTest(); return; }
     const button=event.target.closest('[data-recommended-test]');
     if (!button) return;
     loadTest(Number(button.dataset.recommendedTest),{scroll:true});
   });
+
+  async function createAdaptiveTest() {
+    if (!state.result || !state.result.weakSpots || !state.result.weakSpots.length) { toast('Chưa có nhóm kỹ năng sai để tạo đề cá nhân hóa.'); return; }
+    try {
+      const button=$('[data-adaptive-start]');
+      if (button) { button.disabled=true; button.innerHTML='Đang tạo đề cá nhân hóa…'; }
+      const skills=state.result.weakSpots.map(item=>({skill:item.skill,missed:item.missed}));
+      const excludedIds=state.result.review.filter(item=>!item.isCorrect).map(item=>item.id);
+      const test=await requestJSON('/api/adaptive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({skills,excludedIds})});
+      stopTimer(); state.test=test; state.answers={}; state.started=false; state.submitted=false; state.submitting=false; state.result=null;
+      state.remaining=test.durationSeconds||900; state.currentQuestion=0; updateTestLabels(test);
+      $('prestart').classList.remove('hidden'); $('questionArea').classList.add('hidden'); $('resultArea').classList.add('hidden'); $('reviewArea').classList.add('hidden');
+      $('submitBtn').disabled=true; $('submitBtn').innerHTML='Nộp bài <span>↗</span>'; $('startBtn').disabled=false; $('startBtn').innerHTML='Bắt đầu làm bài <span>→</span>';
+      $('resetBtn').disabled=false; $('examStatus').className='exam-status'; $('examStatus').innerHTML='<span></span> Đề cá nhân hóa';
+      $('timerHint').textContent='Đề này ưu tiên kỹ năng đã sai, đồng thời vẫn kiểm tra cả 5 bài.';
+      updateTimerDisplay(); renderQuestions(); renderAnswerGrid(); updateAnswerStats(); setBackendStatus('Đã tạo đề vá lỗ hổng từ kết quả vừa chấm');
+      $('examArea').scrollIntoView({behavior:'smooth',block:'start'});
+    } catch(error) { toast(`Chưa tạo được đề cá nhân hóa: ${error.message}`); setBackendStatus('Không tạo được đề vá lỗ hổng',true); }
+  }
+
+  async function loadSources() {
+    try {
+      const data=await requestJSON('/api/sources'); const grid=$('sourcesGrid'); if(!grid)return;
+      grid.innerHTML=data.lessons.map(lesson=>`<article class="source-card"><strong>${escapeHtml(lesson.title)}</strong><ul>${lesson.sources.map(source=>`<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)}</a></li>`).join('')}</ul></article>`).join('');
+    } catch { /* Static note remains visible if API is unavailable. */ }
+  }
+
 
   async function loadCloudHistory() {
     try {
@@ -369,4 +400,5 @@
   renderDashboard();
   loadTest(1);
   loadCloudHistory();
+  loadSources();
 })();

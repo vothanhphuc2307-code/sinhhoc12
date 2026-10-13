@@ -1,5 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "cleanUrls": false
+  "cleanUrls": false,
+  "routes": [
+    { "src": "/lib/(.*)", "status": 404 },
+    { "src": "/scripts/(.*)", "status": 404 },
+    { "src": "/supabase/(.*)", "status": 404 },
+    { "src": "/server.js", "status": 404 },
+    { "src": "/package.json", "status": 404 },
+    { "src": "/README.md", "status": 404 },
+    { "src": "/CONTENT_AUDIT.md", "status": 404 },
+    { "src": "/.env.example", "status": 404 },
+    { "handle": "filesystem" }
+  ]
 }
