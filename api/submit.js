@@ -1,16 +1,17 @@
 'use strict';
 const crypto = require('crypto');
-const { analyzeSubmission } = require('./_diagnostics');
-const { saveAttempt } = require('./_storage');
+const { analyzeSubmission } = require('../lib/diagnostics');
+const { saveAttempt } = require('../lib/storage');
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method not allowed' }); }
   try {
     const body = req.body || {};
     const testId = Number(body.testId);
     const studentId = typeof body.studentId === 'string' && /^[a-zA-Z0-9-]{8,80}$/.test(body.studentId) ? body.studentId : null;
-    const result = analyzeSubmission(testId, body.answers);
-    let cloud = { saved: false, reason: 'no_student_id' };
-    if (studentId) {
+    const adaptiveConfig = body.mode === 'adaptive' ? { mode: 'adaptive', skills: body.adaptiveSkills, excludedIds: body.excludedIds, seed: body.seed } : null;
+    const result = analyzeSubmission(testId, body.answers, adaptiveConfig);
+    let cloud = { saved: false, reason: !studentId ? 'no_student_id' : 'adaptive_attempt_local_only' };
+    if (studentId && result.mode === 'standard') {
       try {
         cloud = await saveAttempt({
           student_id: studentId,
